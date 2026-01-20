@@ -1,0 +1,354 @@
+[
+    {
+        "id": "hakuna_flow_group",
+        "type": "group",
+        "z": "flow_id",
+        "name": "Hakuna Zeiterfassung",
+        "style": {
+            "stroke": "#00c853",
+            "fill": "#c8e6c9",
+            "label": true
+        },
+        "nodes": [
+            "hakuna_check_timer",
+            "hakuna_api_timer",
+            "hakuna_process_timer",
+            "hakuna_notify_telegram",
+            "hakuna_inject_check",
+            "hakuna_api_overview",
+            "hakuna_process_overview",
+            "hakuna_set_overtime",
+            "hakuna_debug"
+        ],
+        "x": 14,
+        "y": 19,
+        "w": 1092,
+        "h": 322
+    },
+    {
+        "id": "hakuna_inject_check",
+        "type": "inject",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Alle 30 Min (Arbeitszeit)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "*/30 7-18 * * 1-5",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 80,
+        "wires": [
+            [
+                "hakuna_api_timer"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_api_timer",
+        "type": "http request",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Hakuna Timer Status",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://app.hakuna.ch/api/v1/timer",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "X-Auth-Token",
+                "valueType": "env",
+                "valueValue": "HAKUNA_API_TOKEN"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "Accept-Version",
+                "valueType": "other",
+                "valueValue": "v1"
+            }
+        ],
+        "x": 390,
+        "y": 80,
+        "wires": [
+            [
+                "hakuna_process_timer"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_process_timer",
+        "type": "function",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Timer auswerten",
+        "func": "// HTTP Status 404 = kein Timer läuft\nconst timerRunning = msg.statusCode !== 404 && msg.payload;\n\n// Flow-Variable für späteren Zugriff\nflow.set('hakuna_timer_running', timerRunning);\n\nif (timerRunning) {\n    const timer = msg.payload;\n    flow.set('hakuna_timer', timer);\n    \n    msg.payload = {\n        running: true,\n        startTime: timer.start_time,\n        duration: timer.duration,\n        durationSeconds: timer.duration_in_seconds,\n        date: timer.date,\n        note: timer.note,\n        task: timer.task ? timer.task.name : null,\n        project: timer.project ? (typeof timer.project === 'object' ? timer.project.name : timer.project) : null,\n        user: timer.user ? timer.user.name : null\n    };\n    \n    // Optional: Warnung wenn Timer > 10 Stunden läuft\n    if (timer.duration_in_seconds > 36000) {\n        msg.warnung = `Timer läuft bereits ${timer.duration}!`;\n    }\n} else {\n    flow.set('hakuna_timer', null);\n    msg.payload = {\n        running: false\n    };\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 80,
+        "wires": [
+            [
+                "hakuna_debug",
+                "hakuna_check_notification"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_check_notification",
+        "type": "switch",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Benachrichtigung?",
+        "property": "warnung",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "nnull"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 810,
+        "y": 80,
+        "wires": [
+            [
+                "hakuna_notify_telegram"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_notify_telegram",
+        "type": "function",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Telegram Nachricht",
+        "func": "// Telegram Nachricht formatieren\nmsg.payload = {\n    chatId: env.get('TELEGRAM_CHAT_ID'),\n    type: 'message',\n    content: `⏰ Hakuna Warnung:\\n${msg.warnung}\\n\\nTimer läuft seit: ${msg.payload.startTime}`\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1010,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "hakuna_debug",
+        "type": "debug",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Hakuna Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload.running",
+        "statusType": "auto",
+        "x": 800,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "hakuna_inject_overview",
+        "type": "inject",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Täglich 8:00",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 8 * * 1-5",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 200,
+        "wires": [
+            [
+                "hakuna_api_overview"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_api_overview",
+        "type": "http request",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Hakuna Overview",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://app.hakuna.ch/api/v1/overview",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "X-Auth-Token",
+                "valueType": "env",
+                "valueValue": "HAKUNA_API_TOKEN"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "Accept-Version",
+                "valueType": "other",
+                "valueValue": "v1"
+            }
+        ],
+        "x": 350,
+        "y": 200,
+        "wires": [
+            [
+                "hakuna_process_overview"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_process_overview",
+        "type": "function",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Overview verarbeiten",
+        "func": "const overview = msg.payload;\n\n// Überstunden parsen (Format: \"470:30\")\nconst overtime = overview.overtime || \"0:00\";\nconst [hours, minutes] = overtime.split(':').map(Number);\nconst overtimeHours = hours + (minutes / 60);\n\n// Flow-Variablen setzen für Home Assistant\nflow.set('hakuna_overtime', overtime);\nflow.set('hakuna_overtime_seconds', overview.overtime_in_seconds);\nflow.set('hakuna_overtime_hours', overtimeHours.toFixed(2));\n\nif (overview.vacation) {\n    flow.set('hakuna_vacation_remaining', overview.vacation.remaining_days);\n    flow.set('hakuna_vacation_redeemed', overview.vacation.redeemed_days);\n}\n\nmsg.payload = {\n    overtime: overtime,\n    overtimeSeconds: overview.overtime_in_seconds,\n    overtimeHours: overtimeHours.toFixed(2),\n    vacationRemaining: overview.vacation ? overview.vacation.remaining_days : null,\n    vacationRedeemed: overview.vacation ? overview.vacation.redeemed_days : null\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 580,
+        "y": 200,
+        "wires": [
+            [
+                "hakuna_set_overtime"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_set_overtime",
+        "type": "api-call-service",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "HA Input Number setzen",
+        "server": "",
+        "version": 5,
+        "debugenabled": false,
+        "domain": "input_number",
+        "service": "set_value",
+        "areaId": [],
+        "deviceId": [],
+        "entityId": [
+            "input_number.hakuna_overtime_hours"
+        ],
+        "data": "{\"value\": payload.overtimeHours}",
+        "dataType": "jsonata",
+        "mergeContext": "",
+        "mustacheAltTags": false,
+        "outputProperties": [],
+        "queue": "none",
+        "x": 830,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "hakuna_check_clocked_out",
+        "type": "inject",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Abends 18:30 (Mo-Fr)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "30 18 * * 1-5",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 280,
+        "wires": [
+            [
+                "hakuna_check_still_running"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_check_still_running",
+        "type": "function",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Noch eingestempelt?",
+        "func": "const timerRunning = flow.get('hakuna_timer_running');\n\nif (timerRunning) {\n    const timer = flow.get('hakuna_timer');\n    msg.payload = {\n        alert: true,\n        message: `⚠️ Du bist noch eingestempelt!\\nSeit: ${timer.start_time}\\nDauer: ${timer.duration}`\n    };\n    return msg;\n}\n\n// Kein Timer läuft - nichts tun\nreturn null;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 280,
+        "wires": [
+            [
+                "hakuna_send_reminder"
+            ]
+        ]
+    },
+    {
+        "id": "hakuna_send_reminder",
+        "type": "function",
+        "z": "flow_id",
+        "g": "hakuna_flow_group",
+        "name": "Telegram Erinnerung",
+        "func": "msg.payload = {\n    chatId: env.get('TELEGRAM_CHAT_ID'),\n    type: 'message',\n    content: msg.payload.message\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 280,
+        "wires": [
+            []
+        ]
+    }
+]

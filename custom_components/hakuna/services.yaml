@@ -1,0 +1,53 @@
+start_timer:
+  name: Start Timer
+  description: Start a new timer with optional project, task, and note
+  fields:
+    task_id:
+      name: Task ID
+      description: The task ID to assign to the timer
+      required: false
+      example: 1
+      selector:
+        number:
+          min: 1
+          mode: box
+    project_id:
+      name: Project ID
+      description: The project ID to assign to the timer
+      required: false
+      example: 3
+      selector:
+        number:
+          min: 1
+          mode: box
+    note:
+      name: Note
+      description: A note to add to the timer
+      required: false
+      example: "Working on feature X"
+      selector:
+        text:
+
+stop_timer:
+  name: Stop Timer
+  description: Stop the running timer and create a time entry
+
+cancel_timer:
+  name: Cancel Timer
+  description: Cancel the running timer without creating a time entry
+
+check_open_entries:
+  name: Check Open Entries
+  description: Check for users with open time entries older than specified days
+  fields:
+    older_than_days:
+      name: Older than days
+      description: Check for entries older than this many days
+      required: false
+      default: 7
+      example: 7
+      selector:
+        number:
+          min: 1
+          max: 30
+          mode: slider

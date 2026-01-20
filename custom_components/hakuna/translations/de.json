@@ -1,0 +1,109 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Hakuna Zeiterfassung",
+                "description": "Gib deinen Hakuna API-Token ein. Du findest ihn unter {token_url}",
+                "data": {
+                    "api_token": "API Token"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Ungültiger API-Token",
+            "cannot_connect": "Verbindung zur Hakuna API nicht möglich",
+            "unknown": "Unbekannter Fehler aufgetreten"
+        },
+        "abort": {
+            "already_configured": "Dieses Hakuna-Konto ist bereits konfiguriert"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Hakuna Einstellungen",
+                "data": {
+                    "scan_interval": "Aktualisierungsintervall (Minuten)"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "overtime": {
+                "name": "Überstunden"
+            },
+            "overtime_seconds": {
+                "name": "Überstunden (Sekunden)"
+            },
+            "vacation_remaining": {
+                "name": "Resturlaub"
+            },
+            "vacation_redeemed": {
+                "name": "Genommener Urlaub"
+            },
+            "timer_duration": {
+                "name": "Timer Dauer"
+            },
+            "timer_duration_seconds": {
+                "name": "Timer Dauer (Sekunden)"
+            },
+            "timer_start_time": {
+                "name": "Timer Startzeit"
+            },
+            "timer_project": {
+                "name": "Timer Projekt"
+            },
+            "timer_task": {
+                "name": "Timer Aufgabe"
+            },
+            "team_present_count": {
+                "name": "Team anwesend"
+            }
+        },
+        "binary_sensor": {
+            "timer_running": {
+                "name": "Eingestempelt"
+            }
+        },
+        "button": {
+            "start_timer": {
+                "name": "Timer starten"
+            },
+            "stop_timer": {
+                "name": "Timer stoppen"
+            },
+            "cancel_timer": {
+                "name": "Timer abbrechen"
+            }
+        }
+    },
+    "services": {
+        "start_timer": {
+            "name": "Timer starten",
+            "description": "Startet einen neuen Timer mit optionalem Projekt und Aufgabe",
+            "fields": {
+                "task_id": {
+                    "name": "Aufgaben-ID",
+                    "description": "Die Aufgaben-ID für den Timer"
+                },
+                "project_id": {
+                    "name": "Projekt-ID",
+                    "description": "Die Projekt-ID für den Timer"
+                },
+                "note": {
+                    "name": "Notiz",
+                    "description": "Eine Notiz zum Timer"
+                }
+            }
+        },
+        "stop_timer": {
+            "name": "Timer stoppen",
+            "description": "Stoppt den laufenden Timer und erstellt einen Zeiteintrag"
+        },
+        "cancel_timer": {
+            "name": "Timer abbrechen",
+            "description": "Bricht den laufenden Timer ab ohne Zeiteintrag zu erstellen"
+        }
+    }
+}
