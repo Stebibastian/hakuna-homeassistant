@@ -10,18 +10,17 @@ Eine vollständige Home Assistant Integration für [Hakuna](https://www.hakuna.c
 - **Genommener Urlaub** - Bereits genommene Urlaubstage
 - **Timer Dauer** - Aktuelle Timer-Laufzeit
 - **Timer Startzeit** - Wann der Timer gestartet wurde
-- **Timer Projekt** - Zugewiesenes Projekt
-- **Timer Aufgabe** - Zugewiesene Aufgabe
-- **Team anwesend** - Anzahl Teammitglieder mit laufendem Timer
+- **Timer Projekt** - Zugewiesenes Projekt (optional)
+- **Timer Aufgabe** - Zugewiesene Aufgabe (optional)
 
 ### Binary Sensoren
 - **Eingestempelt** - `on` wenn ein Timer läuft, `off` wenn nicht
-- **Teammitglieder** - Individuelle Präsenz-Sensoren für jeden Mitarbeiter (optional)
 
 ### Buttons
-- **Timer starten** - Startet einen neuen Timer
+- **Timer starten** - Startet einen neuen Timer (mit Default-Task)
 - **Timer stoppen** - Stoppt den Timer und erstellt einen Zeiteintrag
 - **Timer abbrechen** - Bricht den Timer ab ohne Zeiteintrag
+- **Daten aktualisieren** - Manuelles Refresh der Daten
 
 ## Installation
 
@@ -189,17 +188,12 @@ Setze in Node-RED folgende Umgebungsvariablen:
 - Die Hakuna API hat ein Limit von 100 Anfragen pro Minute
 - Erhöhe das Aktualisierungsintervall in den Optionen
 
-### Keine Team-Daten
-- Team-Anwesenheitsdaten benötigen Admin/Supervisor-Rechte
-- Nur Mitarbeiter die du verwalten kannst werden angezeigt
-
 ## Changelog
 
 ### 1.0.0
 - Erste Version
 - Timer-Status und -Steuerung
 - Überstunden und Urlaub
-- Team-Anwesenheit
 - Node-RED Beispiel-Flow
 
 ## Lizenz
