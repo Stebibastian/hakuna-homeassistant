@@ -1,0 +1,109 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Hakuna Time Tracking",
+                "description": "Enter your Hakuna API token. You can find it at {token_url}",
+                "data": {
+                    "api_token": "API Token"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Invalid API token",
+            "cannot_connect": "Cannot connect to Hakuna API",
+            "unknown": "Unknown error occurred"
+        },
+        "abort": {
+            "already_configured": "This Hakuna account is already configured"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Hakuna Options",
+                "data": {
+                    "scan_interval": "Update interval (minutes)"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "overtime": {
+                "name": "Overtime"
+            },
+            "overtime_seconds": {
+                "name": "Overtime (seconds)"
+            },
+            "vacation_remaining": {
+                "name": "Remaining vacation"
+            },
+            "vacation_redeemed": {
+                "name": "Used vacation"
+            },
+            "timer_duration": {
+                "name": "Timer duration"
+            },
+            "timer_duration_seconds": {
+                "name": "Timer duration (seconds)"
+            },
+            "timer_start_time": {
+                "name": "Timer start time"
+            },
+            "timer_project": {
+                "name": "Timer project"
+            },
+            "timer_task": {
+                "name": "Timer task"
+            },
+            "team_present_count": {
+                "name": "Team present"
+            }
+        },
+        "binary_sensor": {
+            "timer_running": {
+                "name": "Clocked in"
+            }
+        },
+        "button": {
+            "start_timer": {
+                "name": "Start timer"
+            },
+            "stop_timer": {
+                "name": "Stop timer"
+            },
+            "cancel_timer": {
+                "name": "Cancel timer"
+            }
+        }
+    },
+    "services": {
+        "start_timer": {
+            "name": "Start Timer",
+            "description": "Start a new timer with optional project and task",
+            "fields": {
+                "task_id": {
+                    "name": "Task ID",
+                    "description": "The task ID to assign to the timer"
+                },
+                "project_id": {
+                    "name": "Project ID",
+                    "description": "The project ID to assign to the timer"
+                },
+                "note": {
+                    "name": "Note",
+                    "description": "A note to add to the timer"
+                }
+            }
+        },
+        "stop_timer": {
+            "name": "Stop Timer",
+            "description": "Stop the running timer and create a time entry"
+        },
+        "cancel_timer": {
+            "name": "Cancel Timer",
+            "description": "Cancel the running timer without creating a time entry"
+        }
+    }
+}
