@@ -1,5 +1,11 @@
 # Hakuna Time Tracking Integration für Home Assistant
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/Stebibastian/hakuna-homeassistant)](https://github.com/Stebibastian/hakuna-homeassistant/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Stebibastian&repository=hakuna-homeassistant&category=integration)
+
 Eine vollständige Home Assistant Integration für [Hakuna](https://www.hakuna.ch/) - die Schweizer Zeiterfassungs-Software.
 
 ## Features
