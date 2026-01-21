@@ -64,6 +64,9 @@
         "binary_sensor": {
             "timer_running": {
                 "name": "Eingestempelt"
+            },
+            "absent_today": {
+                "name": "Heute abwesend"
             }
         },
         "button": {

@@ -261,6 +261,46 @@ class HakunaApiClient:
         timer = await self.get_timer()
         return timer is not None
 
+    async def get_absences_today(self) -> dict[str, Any]:
+        """Check if user has an absence today.
+
+        Returns:
+        {
+            "absent": False
+        }
+
+        or if absent:
+        {
+            "absent": True,
+            "type": "Ferien",
+            "is_vacation": True,
+            "first_half_day": True,
+            "second_half_day": False,
+            "start_date": "2025-01-20",
+            "end_date": "2025-01-20"
+        }
+        """
+        today = date.today()
+
+        absences = await self.get_absences(year=today.year)
+
+        for absence in absences:
+            start = date.fromisoformat(absence.get("start_date", ""))
+            end = date.fromisoformat(absence.get("end_date", ""))
+
+            if start <= today <= end:
+                return {
+                    "absent": True,
+                    "type": absence.get("absence_type", {}).get("name"),
+                    "is_vacation": absence.get("absence_type", {}).get("is_vacation"),
+                    "first_half_day": absence.get("first_half_day"),
+                    "second_half_day": absence.get("second_half_day"),
+                    "start_date": absence.get("start_date"),
+                    "end_date": absence.get("end_date"),
+                }
+
+        return {"absent": False}
+
     async def get_users_with_open_time_entries(
         self, older_than_days: int = 7
     ) -> list[dict[str, Any]]:
