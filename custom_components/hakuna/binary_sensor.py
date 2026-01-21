@@ -25,6 +25,12 @@ BINARY_SENSOR_DESCRIPTIONS = [
         icon="mdi:clock-check",
         device_class=BinarySensorDeviceClass.RUNNING,
     ),
+    BinarySensorEntityDescription(
+        key="absent_today",
+        name="Heute abwesend",
+        icon="mdi:calendar-remove",
+        device_class=BinarySensorDeviceClass.OCCUPANCY,
+    ),
 ]
 
 
@@ -83,9 +89,13 @@ class HakunaBinarySensor(CoordinatorEntity[HakunaDataUpdateCoordinator], BinaryS
             return None
 
         key = self.entity_description.key
+        data = self.coordinator.data
 
         if key == "timer_running":
-            return self.coordinator.data.get("timer_running", False)
+            return data.get("timer_running", False)
+        elif key == "absent_today":
+            absence = data.get("absence_today", {})
+            return absence.get("absent", False)
 
         return None
 
@@ -93,34 +103,48 @@ class HakunaBinarySensor(CoordinatorEntity[HakunaDataUpdateCoordinator], BinaryS
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
         attrs = {}
-        
+
         if self.coordinator.data is None:
             return attrs
 
-        timer = self.coordinator.data.get("timer")
-        
-        if timer:
-            attrs["start_time"] = timer.get("start_time")
-            attrs["duration"] = timer.get("duration")
-            attrs["duration_seconds"] = timer.get("duration_in_seconds")
-            attrs["note"] = timer.get("note")
-            attrs["date"] = timer.get("date")
-            
-            if timer.get("task"):
-                attrs["task"] = timer["task"].get("name")
-                attrs["task_id"] = timer["task"].get("id")
-                
-            if timer.get("project"):
-                project = timer["project"]
-                if isinstance(project, dict):
-                    attrs["project"] = project.get("name")
-                    attrs["project_id"] = project.get("id")
-                else:
-                    attrs["project_id"] = project
-                    
-            if timer.get("user"):
-                attrs["user_name"] = timer["user"].get("name")
-                attrs["user_id"] = timer["user"].get("id")
+        key = self.entity_description.key
+        data = self.coordinator.data
+
+        if key == "timer_running":
+            timer = data.get("timer")
+
+            if timer:
+                attrs["start_time"] = timer.get("start_time")
+                attrs["duration"] = timer.get("duration")
+                attrs["duration_seconds"] = timer.get("duration_in_seconds")
+                attrs["note"] = timer.get("note")
+                attrs["date"] = timer.get("date")
+
+                if timer.get("task"):
+                    attrs["task"] = timer["task"].get("name")
+                    attrs["task_id"] = timer["task"].get("id")
+
+                if timer.get("project"):
+                    project = timer["project"]
+                    if isinstance(project, dict):
+                        attrs["project"] = project.get("name")
+                        attrs["project_id"] = project.get("id")
+                    else:
+                        attrs["project_id"] = project
+
+                if timer.get("user"):
+                    attrs["user_name"] = timer["user"].get("name")
+                    attrs["user_id"] = timer["user"].get("id")
+
+        elif key == "absent_today":
+            absence = data.get("absence_today", {})
+            if absence.get("absent"):
+                attrs["absence_type"] = absence.get("type")
+                attrs["is_vacation"] = absence.get("is_vacation")
+                attrs["first_half_day"] = absence.get("first_half_day")
+                attrs["second_half_day"] = absence.get("second_half_day")
+                attrs["start_date"] = absence.get("start_date")
+                attrs["end_date"] = absence.get("end_date")
 
         return attrs
 

@@ -71,6 +71,9 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         default_task_id = task.get("id")
                         break
 
+            # Get absence for today
+            absence_today = await self.api_client.get_absences_today()
+
             return {
                 "timer": timer,
                 "overview": overview,
@@ -79,6 +82,7 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "tasks": tasks,
                 "default_task_id": default_task_id,
                 "timer_running": timer is not None,
+                "absence_today": absence_today,
             }
 
         except HakunaAuthError as err:
