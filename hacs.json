@@ -2,6 +2,5 @@
   "name": "Hakuna Time Tracking",
   "render_readme": true,
   "homeassistant": "2024.1.0",
-  "content_in_root": false,
-  "icon": "https://raw.githubusercontent.com/Stebibastian/hakuna-homeassistant/main/icon.png"
+  "content_in_root": false
 }
