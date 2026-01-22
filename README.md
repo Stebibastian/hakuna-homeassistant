@@ -48,7 +48,7 @@ Eine vollständige Home Assistant Integration für [Hakuna](https://www.hakuna.c
 
 1. Gehe zu **Einstellungen → Geräte & Dienste → Integration hinzufügen**
 2. Suche nach "Hakuna"
-3. Gib deinen API-Token ein (findest du unter https://app.hakuna.ch/token)
+3. Gib deinen API-Token ein (findest du unter https://app.hakuna.ch/my_settings)
 
 ### Optionen
 
@@ -59,7 +59,7 @@ Nach der Einrichtung kannst du folgende Optionen anpassen:
 
 1. Melde dich bei [Hakuna](https://app.hakuna.ch) an
 2. Klicke auf deinen Namen unten links
-3. Wähle "API" oder gehe direkt zu https://app.hakuna.ch/token
+3. Wähle "Meine Einstellungen" oder gehe direkt zu https://app.hakuna.ch/my_settings
 4. Erstelle einen neuen Token
 
 **Wichtig:** Behandle deinen Token wie ein Passwort!
