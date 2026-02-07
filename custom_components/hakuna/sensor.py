@@ -34,8 +34,7 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:clock-plus-outline",
         native_unit_of_measurement=UnitOfTime.SECONDS,
         device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.TOTAL,
     ),
     SensorEntityDescription(
         key="vacation_remaining",
