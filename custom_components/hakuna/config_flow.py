@@ -12,7 +12,15 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import HakunaApiClient, HakunaApiError, HakunaAuthError
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONF_SCAN_INTERVAL
+from .const import (
+    DOMAIN,
+    DEFAULT_SCAN_INTERVAL,
+    CONF_SCAN_INTERVAL,
+    CONF_DAILY_TARGET_HOURS,
+    DEFAULT_DAILY_TARGET_HOURS,
+    CONF_WORK_DAYS,
+    DEFAULT_WORK_DAYS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -144,6 +152,18 @@ class HakunaOptionsFlow(config_entries.OptionsFlow):
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                    vol.Optional(
+                        CONF_DAILY_TARGET_HOURS,
+                        default=self.config_entry.options.get(
+                            CONF_DAILY_TARGET_HOURS, DEFAULT_DAILY_TARGET_HOURS
+                        ),
+                    ): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=24)),
+                    vol.Optional(
+                        CONF_WORK_DAYS,
+                        default=self.config_entry.options.get(
+                            CONF_WORK_DAYS, DEFAULT_WORK_DAYS
+                        ),
+                    ): str,
                 }
             ),
         )

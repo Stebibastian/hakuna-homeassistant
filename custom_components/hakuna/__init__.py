@@ -9,7 +9,15 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    CONF_DAILY_TARGET_HOURS,
+    DEFAULT_DAILY_TARGET_HOURS,
+    CONF_WORK_DAYS,
+    DEFAULT_WORK_DAYS,
+)
 from .coordinator import HakunaDataUpdateCoordinator
 from .api import HakunaApiClient
 
@@ -29,10 +37,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         company=entry.data.get("company"),
     )
 
+    # Parse work-day string "0,1,2,3,4" into a set of weekday numbers.
+    work_days_raw = entry.options.get(CONF_WORK_DAYS, DEFAULT_WORK_DAYS)
+    try:
+        work_days: set[int] = {
+            int(d.strip())
+            for d in str(work_days_raw).split(",")
+            if d.strip().isdigit() and 0 <= int(d.strip()) <= 6
+        }
+    except ValueError:
+        work_days = {0, 1, 2, 3, 4}
+    if not work_days:
+        work_days = {0, 1, 2, 3, 4}
+
     coordinator = HakunaDataUpdateCoordinator(
         hass,
         api_client=api_client,
-        update_interval=timedelta(minutes=entry.options.get("scan_interval", 5)),
+        update_interval=timedelta(
+            minutes=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        ),
+        daily_target_hours=float(
+            entry.options.get(CONF_DAILY_TARGET_HOURS, DEFAULT_DAILY_TARGET_HOURS)
+        ),
+        work_days=work_days,
     )
 
     await coordinator.async_config_entry_first_refresh()

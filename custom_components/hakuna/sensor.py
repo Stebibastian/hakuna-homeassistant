@@ -129,6 +129,45 @@ SENSOR_DESCRIPTIONS = [
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
     ),
+
+    # Target hours (what you "should" work in the current period) and the
+    # progress percentage. Both target sensors expose the full-period
+    # target (whole week / whole month) as an attribute so dashboards can
+    # show "8h 28m / 42h 30m" kind of numbers.
+    SensorEntityDescription(
+        key="target_week_hours",
+        name="Sollzeit diese Woche",
+        icon="mdi:target",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    SensorEntityDescription(
+        key="target_month_hours",
+        name="Sollzeit diesen Monat",
+        icon="mdi:target",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    SensorEntityDescription(
+        key="progress_week_percent",
+        name="Fortschritt Woche",
+        icon="mdi:percent",
+        native_unit_of_measurement="%",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    SensorEntityDescription(
+        key="progress_month_percent",
+        name="Fortschritt Monat",
+        icon="mdi:percent",
+        native_unit_of_measurement="%",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
 ]
 
 
@@ -220,6 +259,22 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
             a = _next_vacation(data)
             return _days_until(a.get("start_date")) if a else None
 
+        # Target / progress
+        if key == "target_week_hours":
+            return data.get("target_week_hours")
+        if key == "target_month_hours":
+            return data.get("target_month_hours")
+        if key == "progress_week_percent":
+            return _percent(
+                data.get("worked_week_seconds"),
+                data.get("target_week_hours"),
+            )
+        if key == "progress_month_percent":
+            return _percent(
+                data.get("worked_month_seconds"),
+                data.get("target_month_hours"),
+            )
+
         return None
 
     @property
@@ -270,6 +325,31 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
             next_any = _next_absence(data)
             if next_any:
                 attrs["next_absence"] = _summarize_absence(next_any)
+
+        # Target sensors: expose the full-period target so dashboards can
+        # render "8.3h / 42.5h" style numbers.
+        if key == "target_week_hours":
+            attrs["full_week_hours"] = data.get("target_week_full_hours")
+            attrs["daily_target_hours"] = data.get("daily_target_hours")
+            attrs["work_days"] = data.get("work_days")
+        if key == "target_month_hours":
+            attrs["full_month_hours"] = data.get("target_month_full_hours")
+            attrs["daily_target_hours"] = data.get("daily_target_hours")
+            attrs["work_days"] = data.get("work_days")
+
+        # Progress sensors: expose worked/target in a convenient form.
+        if key == "progress_week_percent":
+            attrs["worked_hours"] = round(
+                (data.get("worked_week_seconds") or 0) / 3600, 2
+            )
+            attrs["target_hours"] = data.get("target_week_hours")
+            attrs["full_week_hours"] = data.get("target_week_full_hours")
+        if key == "progress_month_percent":
+            attrs["worked_hours"] = round(
+                (data.get("worked_month_seconds") or 0) / 3600, 2
+            )
+            attrs["target_hours"] = data.get("target_month_hours")
+            attrs["full_month_hours"] = data.get("target_month_full_hours")
 
         return attrs
 
@@ -345,6 +425,13 @@ def _next_absence(data: dict[str, Any]) -> dict[str, Any] | None:
     """First upcoming absence regardless of type."""
     entries = _upcoming_only_in_future(data)
     return entries[0] if entries else None
+
+
+def _percent(worked_seconds: float | int | None, target_hours: float | None) -> int | None:
+    """Return worked/target as an integer percent, or None when undefined."""
+    if worked_seconds is None or not target_hours or target_hours <= 0:
+        return None
+    return round((worked_seconds / 3600) / target_hours * 100)
 
 
 def _summarize_absence(absence: dict[str, Any]) -> dict[str, Any]:

@@ -20,9 +20,13 @@ API_BASE_URL = "https://app.hakuna.ch/api/v1"
 CONF_API_TOKEN = "api_token"
 CONF_COMPANY = "company"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_DAILY_TARGET_HOURS = "daily_target_hours"
+CONF_WORK_DAYS = "work_days"  # comma-separated weekday numbers (0=Mon..6=Sun)
 
 # Default values
 DEFAULT_SCAN_INTERVAL = 5  # minutes
+DEFAULT_DAILY_TARGET_HOURS = 8.5
+DEFAULT_WORK_DAYS = "0,1,2,3,4"  # Mon-Fri
 
 # Attributes
 ATTR_OVERTIME = "overtime"

@@ -21,8 +21,20 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         hass: HomeAssistant,
         api_client: HakunaApiClient,
         update_interval: timedelta,
+        daily_target_hours: float = 8.5,
+        work_days: set[int] | None = None,
     ) -> None:
-        """Initialize the coordinator."""
+        """Initialize the coordinator.
+
+        Args:
+            hass: Home Assistant instance.
+            api_client: Hakuna API client.
+            update_interval: How often to refresh data.
+            daily_target_hours: Expected hours per work day (e.g. 8.5).
+            work_days: Set of ISO weekday numbers (0=Mon..6=Sun) that
+                count as work days for target computation. Defaults to
+                Mon-Fri.
+        """
         super().__init__(
             hass,
             _LOGGER,
@@ -30,6 +42,8 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=update_interval,
         )
         self.api_client = api_client
+        self.daily_target_hours = daily_target_hours
+        self.work_days = work_days if work_days else {0, 1, 2, 3, 4}
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from Hakuna API."""
@@ -110,6 +124,51 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Compute upcoming absences (future-only, sorted)
             upcoming = _upcoming_absences(absences_year, today)
 
+            # Compute target hours for this week / month.
+            # Target = daily_target × number of work days in the period,
+            # minus days that are fully covered by an absence that grants
+            # work time (vacation, sick days, etc. — the day is "paid
+            # without needing to work").
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            month_start = today.replace(day=1)
+
+            target_week_hours = _target_hours(
+                week_start,
+                min(week_end, today),
+                self.work_days,
+                self.daily_target_hours,
+                absences_year,
+            )
+            target_month_hours = _target_hours(
+                month_start,
+                today,
+                self.work_days,
+                self.daily_target_hours,
+                absences_year,
+            )
+            # Full-period targets (whole week / whole month) so dashboards
+            # can show "45h of 42.5h" instead of the progressive target.
+            target_week_full_hours = _target_hours(
+                week_start,
+                week_end,
+                self.work_days,
+                self.daily_target_hours,
+                absences_year,
+            )
+            try:
+                last_day = (month_start.replace(month=month_start.month + 1)
+                            - timedelta(days=1))
+            except ValueError:
+                last_day = month_start.replace(year=month_start.year + 1, month=1) - timedelta(days=1)
+            target_month_full_hours = _target_hours(
+                month_start,
+                last_day,
+                self.work_days,
+                self.daily_target_hours,
+                absences_year,
+            )
+
             return {
                 "timer": timer,
                 "overview": overview,
@@ -125,6 +184,12 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "worked_week_seconds": worked_week_seconds,
                 "worked_month_seconds": worked_month_seconds,
                 "upcoming_absences": upcoming,
+                "target_week_hours": target_week_hours,
+                "target_month_hours": target_month_hours,
+                "target_week_full_hours": target_week_full_hours,
+                "target_month_full_hours": target_month_full_hours,
+                "daily_target_hours": self.daily_target_hours,
+                "work_days": sorted(self.work_days),
             }
 
         except HakunaAuthError as err:
@@ -192,6 +257,74 @@ def _find_absence_for_date(
                 "end_date": a.get("end_date"),
             }
     return None
+
+
+def _target_hours(
+    start: date,
+    end: date,
+    work_days: set[int],
+    daily_target: float,
+    absences: list[dict[str, Any]],
+) -> float:
+    """Compute the expected work hours in the given inclusive date range.
+
+    For each calendar day in [start, end]:
+      * Skip days whose weekday is NOT in `work_days`.
+      * If a day is fully or half covered by an absence whose type has
+        `grants_work_time=true` (Ferien, Krankheit, Feiertag, ...), the
+        corresponding hours are deducted from the target. Half-day
+        absences deduct half the daily target.
+
+    Returns the net target in hours.
+    """
+    if end < start:
+        return 0.0
+
+    total = 0.0
+    cur = start
+    while cur <= end:
+        if cur.weekday() in work_days:
+            absence_factor = _absence_factor_for_day(cur, absences)
+            total += daily_target * (1.0 - absence_factor)
+        cur += timedelta(days=1)
+    return round(total, 2)
+
+
+def _absence_factor_for_day(
+    day: date, absences: list[dict[str, Any]]
+) -> float:
+    """Return how much of a work day is covered by granted absences.
+
+    0.0 = nothing, work full day.
+    0.5 = half the day is absence-covered.
+    1.0 = full day absence (vacation, sick, ...).
+    """
+    covered = 0.0
+    for a in absences:
+        atype = a.get("absence_type") or {}
+        if not atype.get("grants_work_time"):
+            continue
+        start = _parse_date(a.get("start_date"))
+        end = _parse_date(a.get("end_date"))
+        if not (start and end and start <= day <= end):
+            continue
+
+        # Only a single-day absence can be a half day; multi-day ranges
+        # cover the full day.
+        if start == end:
+            first = bool(a.get("first_half_day"))
+            second = bool(a.get("second_half_day"))
+            if first and second:
+                covered = max(covered, 1.0)
+            elif first or second:
+                covered = max(covered, 0.5)
+            else:
+                # Neither flag set → treat as full day
+                covered = max(covered, 1.0)
+        else:
+            covered = max(covered, 1.0)
+
+    return min(covered, 1.0)
 
 
 def _upcoming_absences(
