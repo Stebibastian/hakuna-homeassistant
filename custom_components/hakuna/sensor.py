@@ -1,6 +1,7 @@
 """Sensor entities for Hakuna integration."""
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -21,6 +22,8 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 from .coordinator import HakunaDataUpdateCoordinator
 
+_LOGGER = logging.getLogger(__name__)
+
 
 SENSOR_DESCRIPTIONS = [
     SensorEntityDescription(
@@ -29,12 +32,22 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:clock-plus-outline",
     ),
     SensorEntityDescription(
+        key="overtime_hours",
+        name="Überstunden (Stunden)",
+        icon="mdi:clock-plus-outline",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    SensorEntityDescription(
         key="overtime_seconds",
         name="Überstunden (Sekunden)",
         icon="mdi:clock-plus-outline",
         native_unit_of_measurement=UnitOfTime.SECONDS,
         device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="vacation_remaining",
@@ -42,19 +55,31 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:beach",
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
     ),
     SensorEntityDescription(
         key="vacation_redeemed",
         name="Genommener Urlaub",
         icon="mdi:calendar-check",
         native_unit_of_measurement="Tage",
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
         entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="timer_duration",
         name="Timer Dauer",
         icon="mdi:timer-outline",
+    ),
+    SensorEntityDescription(
+        key="timer_duration_hours",
+        name="Timer Dauer (Stunden)",
+        icon="mdi:timer-outline",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="timer_duration_seconds",
@@ -135,10 +160,14 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
         data = self.coordinator.data
         overview = data.get("overview", {})
         timer = data.get("timer")
-        presence = data.get("presence", [])
 
         if key == "overtime":
             return overview.get("overtime")
+        elif key == "overtime_hours":
+            seconds = overview.get("overtime_in_seconds")
+            if seconds is None:
+                return None
+            return round(seconds / 3600, 2)
         elif key == "overtime_seconds":
             return overview.get("overtime_in_seconds")
         elif key == "vacation_remaining":
@@ -150,6 +179,13 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
         elif key == "timer_duration":
             if timer:
                 return timer.get("duration")
+            return None
+        elif key == "timer_duration_hours":
+            if timer:
+                seconds = timer.get("duration_in_seconds")
+                if seconds is None:
+                    return None
+                return round(seconds / 3600, 2)
             return None
         elif key == "timer_duration_seconds":
             if timer:
@@ -164,7 +200,11 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
                         dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
                         # Make timezone-aware using Home Assistant's configured timezone
                         return dt_util.as_local(dt.replace(tzinfo=dt_util.get_default_time_zone()))
-                    except ValueError:
+                    except ValueError as err:
+                        _LOGGER.warning(
+                            "Could not parse Hakuna timer start time '%s %s': %s",
+                            date_str, time_str, err
+                        )
                         return None
             return None
         elif key == "timer_project":
@@ -184,34 +224,32 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
-        attrs = {}
+        attrs: dict[str, Any] = {}
         key = self.entity_description.key
         data = self.coordinator.data
 
         if data is None:
             return attrs
 
+        overview = data.get("overview", {})
         timer = data.get("timer")
+
+        # Expose formatted "HH:MM" on numeric overtime sensors for dashboard display.
+        if key in ("overtime_hours", "overtime_seconds"):
+            if overview.get("overtime") is not None:
+                attrs["formatted"] = overview.get("overtime")
+
+        # Expose seconds on the string overtime sensor for advanced templates.
+        if key == "overtime":
+            seconds = overview.get("overtime_in_seconds")
+            if seconds is not None:
+                attrs["seconds"] = seconds
+                attrs["hours"] = round(seconds / 3600, 2)
 
         if key == "timer_duration" and timer:
             attrs["note"] = timer.get("note")
             if timer.get("user"):
                 attrs["user_name"] = timer["user"].get("name")
                 attrs["user_id"] = timer["user"].get("id")
-
-        elif key == "team_present_count":
-            presence = data.get("presence", [])
-            present_users = [
-                p["user"]["name"] for p in presence 
-                if p.get("has_timer_running") and p.get("user")
-            ]
-            absent_users = [
-                p["user"]["name"] for p in presence
-                if (p.get("absent_first_half_day") or p.get("absent_second_half_day"))
-                and p.get("user")
-            ]
-            attrs["present_users"] = present_users
-            attrs["absent_users"] = absent_users
-            attrs["total_users"] = len(presence)
 
         return attrs
