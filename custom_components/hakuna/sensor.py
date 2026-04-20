@@ -60,7 +60,10 @@ SENSOR_DESCRIPTIONS = [
     ),
     SensorEntityDescription(
         key="vacation_redeemed",
-        name="Genommener Urlaub",
+        # Named "Urlaub genommen" (not "Genommener Urlaub") so the device
+        # info view lists it *after* "Resturlaub" alphabetically — users
+        # read the remaining balance first and the consumed amount below.
+        name="Urlaub genommen",
         icon="mdi:calendar-check",
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
