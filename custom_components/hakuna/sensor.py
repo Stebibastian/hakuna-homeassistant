@@ -66,15 +66,6 @@ SENSOR_DESCRIPTIONS = [
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="vacation_taken_this_year",
-        name="Urlaubstage genommen (Jahr)",
-        icon="mdi:beach",
-        native_unit_of_measurement="Tage",
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=1,
     ),
     # ==================== Timer ====================
     SensorEntityDescription(
@@ -168,11 +159,17 @@ SENSOR_DESCRIPTIONS = [
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
     ),
+    # Non-vacation absence tracking (Home Office, Kompensation, ...).
+    # Disabled by default — enable individually if you want dashboards for
+    # non-vacation absences. When the next absence is a vacation these
+    # sensors will carry the same value as the next_vacation_* ones, so
+    # keeping them off avoids duplicate noise for most users.
     SensorEntityDescription(
         key="next_absence_start",
         name="Nächste Abwesenheit (Start)",
         icon="mdi:calendar-alert",
         device_class=SensorDeviceClass.TIMESTAMP,
+        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="next_absence_end",
@@ -185,6 +182,7 @@ SENSOR_DESCRIPTIONS = [
         key="next_absence_type",
         name="Nächste Abwesenheit (Typ)",
         icon="mdi:calendar-alert",
+        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="next_absence_days_until",
@@ -192,6 +190,7 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:calendar-alert",
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
     ),
     # ==================== Team / Company ====================
     SensorEntityDescription(
@@ -276,8 +275,6 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
             return (overview.get("vacation") or {}).get("remaining_days")
         if key == "vacation_redeemed":
             return (overview.get("vacation") or {}).get("redeemed_days")
-        if key == "vacation_taken_this_year":
-            return data.get("vacation_days_taken_year")
 
         # Timer
         if key == "timer_duration":

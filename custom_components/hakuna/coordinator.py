@@ -110,9 +110,6 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Compute upcoming absences (future-only, sorted)
             upcoming = _upcoming_absences(absences_year, today)
 
-            # Compute vacation days taken this year (from past absences of type is_vacation)
-            vacation_days_taken_year = _vacation_days_taken(absences_year, today)
-
             return {
                 "timer": timer,
                 "overview": overview,
@@ -128,7 +125,6 @@ class HakunaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "worked_week_seconds": worked_week_seconds,
                 "worked_month_seconds": worked_month_seconds,
                 "upcoming_absences": upcoming,
-                "vacation_days_taken_year": vacation_days_taken_year,
             }
 
         except HakunaAuthError as err:
@@ -214,35 +210,3 @@ def _upcoming_absences(
     return out
 
 
-def _vacation_days_taken(
-    absences: list[dict[str, Any]], today: date
-) -> float:
-    """Count vacation days already taken this year (before today).
-
-    Counts half-days as 0.5 days.
-    """
-    total = 0.0
-    for a in absences:
-        atype = a.get("absence_type") or {}
-        if not atype.get("is_vacation"):
-            continue
-        start = _parse_date(a.get("start_date"))
-        end = _parse_date(a.get("end_date"))
-        if not (start and end):
-            continue
-        # Only count days that have already passed
-        effective_end = min(end, today - timedelta(days=1))
-        if effective_end < start:
-            continue
-        days = (effective_end - start).days + 1
-        # Half-day adjustment only applies if the absence is a single day
-        if start == end:
-            halves = 0
-            if a.get("first_half_day"):
-                halves += 1
-            if a.get("second_half_day"):
-                halves += 1
-            if halves == 1:
-                days = 0.5
-        total += days
-    return total
