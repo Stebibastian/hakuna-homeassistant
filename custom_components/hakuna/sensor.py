@@ -19,7 +19,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
 from .coordinator import HakunaDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -147,6 +147,7 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
             name="Hakuna",
             manufacturer="Hakuna AG",
             model="Time Tracking",
+            sw_version=VERSION,
             entry_type="service",
         )
 

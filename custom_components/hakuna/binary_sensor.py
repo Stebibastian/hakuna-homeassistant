@@ -14,7 +14,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
 from .coordinator import HakunaDataUpdateCoordinator
 
 
@@ -79,6 +79,7 @@ class HakunaBinarySensor(CoordinatorEntity[HakunaDataUpdateCoordinator], BinaryS
             name="Hakuna",
             manufacturer="Hakuna AG",
             model="Time Tracking",
+            sw_version=VERSION,
             entry_type="service",
         )
 
@@ -175,6 +176,7 @@ class HakunaTeamMemberSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], Bin
             name="Hakuna",
             manufacturer="Hakuna AG",
             model="Time Tracking",
+            sw_version=VERSION,
             entry_type="service",
         )
         self._attr_entity_registry_enabled_default = False

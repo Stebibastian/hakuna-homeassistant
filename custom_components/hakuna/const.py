@@ -1,6 +1,17 @@
 """Constants for the Hakuna integration."""
+import json
+from pathlib import Path
 
 DOMAIN = "hakuna"
+
+# Read version from manifest.json at import time so there is a single
+# source of truth and the device info in HA always matches the release.
+try:
+    VERSION = json.loads(
+        (Path(__file__).parent / "manifest.json").read_text()
+    )["version"]
+except Exception:  # pragma: no cover - defensive fallback
+    VERSION = "unknown"
 
 # API Base URL
 API_BASE_URL = "https://app.hakuna.ch/api/v1"

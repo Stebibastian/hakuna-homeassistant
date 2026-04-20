@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
 from .coordinator import HakunaDataUpdateCoordinator
 from .api import HakunaApiClient
 
@@ -81,6 +81,7 @@ class HakunaButton(CoordinatorEntity[HakunaDataUpdateCoordinator], ButtonEntity)
             name="Hakuna",
             manufacturer="Hakuna AG",
             model="Time Tracking",
+            sw_version=VERSION,
             entry_type="service",
         )
 

@@ -1,12 +1,12 @@
 {
     "domain": "hakuna",
     "name": "Hakuna Time Tracking",
-    "codeowners": [],
+    "codeowners": ["@Stebibastian"],
     "config_flow": true,
     "dependencies": [],
-    "documentation": "https://github.com/your-repo/hakuna-homeassistant",
+    "documentation": "https://github.com/Stebibastian/hakuna-homeassistant",
     "iot_class": "cloud_polling",
-    "issue_tracker": "https://github.com/your-repo/hakuna-homeassistant/issues",
+    "issue_tracker": "https://github.com/Stebibastian/hakuna-homeassistant/issues",
     "requirements": [],
     "version": "1.1.0"
 }
