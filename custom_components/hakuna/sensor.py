@@ -25,8 +25,15 @@ from .coordinator import HakunaDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
+# A deliberately small, opinionated set of sensors. We used to expose
+# seconds / hours / minutes variants of everything plus every possible
+# absence sub-field — it created a noisy entity list without actually
+# being useful. The kept sensors are the ones that answer the questions
+# users typically ask: how many hours, when's my vacation, am I clocked in.
+
 SENSOR_DESCRIPTIONS = [
-    # ==================== Overtime ====================
+    # Overtime: the formatted string users actually read, plus a numeric
+    # hours variant that can be graphed in the more-info panel.
     SensorEntityDescription(
         key="overtime",
         name="Überstunden",
@@ -41,16 +48,8 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
-        key="overtime_seconds",
-        name="Überstunden (Sekunden)",
-        icon="mdi:clock-plus-outline",
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
-    ),
-    # ==================== Vacation ====================
+
+    # Vacation balance as Hakuna itself reports it.
     SensorEntityDescription(
         key="vacation_remaining",
         name="Resturlaub",
@@ -67,30 +66,13 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
     ),
-    # ==================== Timer ====================
+
+    # Current timer — a formatted duration for display and a timestamp for
+    # "started 4 hours ago" style cards.
     SensorEntityDescription(
         key="timer_duration",
         name="Timer Dauer",
         icon="mdi:timer-outline",
-    ),
-    SensorEntityDescription(
-        key="timer_duration_hours",
-        name="Timer Dauer (Stunden)",
-        icon="mdi:timer-outline",
-        native_unit_of_measurement=UnitOfTime.HOURS,
-        device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=2,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="timer_duration_seconds",
-        name="Timer Dauer (Sekunden)",
-        icon="mdi:timer-outline",
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="timer_start_time",
@@ -98,19 +80,8 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:clock-start",
         device_class=SensorDeviceClass.TIMESTAMP,
     ),
-    SensorEntityDescription(
-        key="timer_project",
-        name="Timer Projekt",
-        icon="mdi:folder-outline",
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="timer_task",
-        name="Timer Aufgabe",
-        icon="mdi:checkbox-marked-outline",
-        entity_registry_enabled_default=False,
-    ),
-    # ==================== Worked time aggregates ====================
+
+    # Worked-time aggregates (derived from time entries + running timer).
     SensorEntityDescription(
         key="worked_today_hours",
         name="Gearbeitet heute",
@@ -138,19 +109,15 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-    # ==================== Upcoming absences ====================
+
+    # Next vacation — just the start date (as a timestamp) and the
+    # countdown in days. Users who want end-dates or per-type tracking can
+    # build a template sensor from the `upcoming` attribute below.
     SensorEntityDescription(
         key="next_vacation_start",
-        name="Nächster Urlaub (Start)",
+        name="Nächster Urlaub",
         icon="mdi:beach",
         device_class=SensorDeviceClass.TIMESTAMP,
-    ),
-    SensorEntityDescription(
-        key="next_vacation_end",
-        name="Nächster Urlaub (Ende)",
-        icon="mdi:beach",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_registry_enabled_default=False,
     ),
     SensorEntityDescription(
         key="next_vacation_days_until",
@@ -158,48 +125,6 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:beach",
         native_unit_of_measurement="Tage",
         state_class=SensorStateClass.MEASUREMENT,
-    ),
-    # Non-vacation absence tracking (Home Office, Kompensation, ...).
-    # Disabled by default — enable individually if you want dashboards for
-    # non-vacation absences. When the next absence is a vacation these
-    # sensors will carry the same value as the next_vacation_* ones, so
-    # keeping them off avoids duplicate noise for most users.
-    SensorEntityDescription(
-        key="next_absence_start",
-        name="Nächste Abwesenheit (Start)",
-        icon="mdi:calendar-alert",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="next_absence_end",
-        name="Nächste Abwesenheit (Ende)",
-        icon="mdi:calendar-alert",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="next_absence_type",
-        name="Nächste Abwesenheit (Typ)",
-        icon="mdi:calendar-alert",
-        entity_registry_enabled_default=False,
-    ),
-    SensorEntityDescription(
-        key="next_absence_days_until",
-        name="Tage bis zur Abwesenheit",
-        icon="mdi:calendar-alert",
-        native_unit_of_measurement="Tage",
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
-    ),
-    # ==================== Team / Company ====================
-    SensorEntityDescription(
-        key="managed_users_count",
-        name="Verwaltbare Personen",
-        icon="mdi:account-group",
-        native_unit_of_measurement="Personen",
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_registry_enabled_default=False,
     ),
 ]
 
@@ -244,10 +169,6 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
             entry_type="service",
         )
 
-    # ------------------------------------------------------------------
-    # native_value
-    # ------------------------------------------------------------------
-
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
@@ -267,10 +188,8 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
             if seconds is None:
                 return None
             return round(seconds / 3600, 2)
-        if key == "overtime_seconds":
-            return overview.get("overtime_in_seconds")
 
-        # Vacation
+        # Vacation balance
         if key == "vacation_remaining":
             return (overview.get("vacation") or {}).get("remaining_days")
         if key == "vacation_redeemed":
@@ -279,30 +198,10 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
         # Timer
         if key == "timer_duration":
             return timer.get("duration") if timer else None
-        if key == "timer_duration_hours":
-            if not timer:
-                return None
-            seconds = timer.get("duration_in_seconds")
-            if seconds is None:
-                return None
-            return round(seconds / 3600, 2)
-        if key == "timer_duration_seconds":
-            return timer.get("duration_in_seconds") if timer else None
         if key == "timer_start_time":
             return _timer_start_datetime(timer)
-        if key == "timer_project":
-            if timer and timer.get("project"):
-                project = timer["project"]
-                if isinstance(project, dict):
-                    return project.get("name")
-                return str(project)
-            return None
-        if key == "timer_task":
-            if timer and timer.get("task"):
-                return timer["task"].get("name")
-            return None
 
-        # Worked time aggregates (seconds -> hours, 2 decimals)
+        # Worked-time aggregates
         if key == "worked_today_hours":
             return round((data.get("worked_today_seconds") or 0) / 3600, 2)
         if key == "worked_week_hours":
@@ -310,50 +209,15 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
         if key == "worked_month_hours":
             return round((data.get("worked_month_seconds") or 0) / 3600, 2)
 
-        # Upcoming absences
-        if key in (
-            "next_vacation_start",
-            "next_vacation_end",
-            "next_vacation_days_until",
-        ):
-            absence = _next_absence(data, vacation_only=True)
-            if not absence:
-                return None
-            if key == "next_vacation_start":
-                return _to_midnight_dt(absence.get("start_date"))
-            if key == "next_vacation_end":
-                return _to_midnight_dt(absence.get("end_date"))
-            if key == "next_vacation_days_until":
-                return _days_until(absence.get("start_date"))
-
-        if key in (
-            "next_absence_start",
-            "next_absence_end",
-            "next_absence_type",
-            "next_absence_days_until",
-        ):
-            absence = _next_absence(data, vacation_only=False)
-            if not absence:
-                return None
-            if key == "next_absence_start":
-                return _to_midnight_dt(absence.get("start_date"))
-            if key == "next_absence_end":
-                return _to_midnight_dt(absence.get("end_date"))
-            if key == "next_absence_type":
-                return (absence.get("absence_type") or {}).get("name")
-            if key == "next_absence_days_until":
-                return _days_until(absence.get("start_date"))
-
-        # Team
-        if key == "managed_users_count":
-            users = data.get("users") or []
-            return len(users)
+        # Next vacation
+        if key == "next_vacation_start":
+            a = _next_vacation(data)
+            return _to_midnight_dt(a.get("start_date")) if a else None
+        if key == "next_vacation_days_until":
+            a = _next_vacation(data)
+            return _days_until(a.get("start_date")) if a else None
 
         return None
-
-    # ------------------------------------------------------------------
-    # extra_state_attributes
-    # ------------------------------------------------------------------
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -368,48 +232,41 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
         overview = data.get("overview", {}) or {}
         timer = data.get("timer")
 
-        # Overtime variants cross-reference each other
+        # Cross-reference the different overtime representations.
         if key == "overtime":
             seconds = overview.get("overtime_in_seconds")
             if seconds is not None:
                 attrs["seconds"] = seconds
                 attrs["hours"] = round(seconds / 3600, 2)
-        if key in ("overtime_hours", "overtime_seconds"):
+        if key == "overtime_hours":
             if overview.get("overtime") is not None:
                 attrs["formatted"] = overview.get("overtime")
 
-        # Timer metadata
+        # Surface the notes / project / task on the timer_duration sensor
+        # so users don't need a second sensor just to see them.
         if key == "timer_duration" and timer:
-            attrs["note"] = timer.get("note")
+            attrs["note"] = timer.get("note") or None
             user = timer.get("user") or {}
-            if user:
-                attrs["user_name"] = user.get("name")
-                attrs["user_id"] = user.get("id")
+            attrs["user_name"] = user.get("name")
+            task = timer.get("task") or {}
+            attrs["task"] = task.get("name")
+            project = timer.get("project")
+            if isinstance(project, dict):
+                attrs["project"] = project.get("name")
+            elif project:
+                attrs["project"] = str(project)
 
-        # Expose list of upcoming absences on both the vacation-remaining sensor
-        # (for easy dashboard template access) and on the next_* sensors.
-        if key in (
-            "vacation_remaining",
-            "next_vacation_start",
-            "next_absence_start",
-        ):
+        # Expose the upcoming absences list alongside the countdown so
+        # dashboards can iterate without a separate entity for every piece.
+        if key in ("next_vacation_start", "next_vacation_days_until", "vacation_remaining"):
             upcoming = data.get("upcoming_absences") or []
             attrs["upcoming"] = [_summarize_absence(a) for a in upcoming[:10]]
-
-        # Next vacation/absence sensors expose the raw absence dict
-        if key.startswith("next_vacation"):
-            a = _next_absence(data, vacation_only=True)
+            a = _next_vacation(data)
             if a:
-                attrs["absence"] = _summarize_absence(a)
-        if key.startswith("next_absence"):
-            a = _next_absence(data, vacation_only=False)
-            if a:
-                attrs["absence"] = _summarize_absence(a)
-
-        # Managed users list
-        if key == "managed_users_count":
-            users = data.get("users") or []
-            attrs["names"] = [u.get("name") for u in users if u.get("name")]
+                attrs["next_vacation"] = _summarize_absence(a)
+            next_any = _next_absence(data)
+            if next_any:
+                attrs["next_absence"] = _summarize_absence(next_any)
 
         return attrs
 
@@ -448,7 +305,7 @@ def _to_midnight_dt(date_str: str | None) -> datetime | None:
 
 
 def _days_until(date_str: str | None) -> int | None:
-    """Return whole days from today until the given date (0 if today, negative if past)."""
+    """Return whole days from today until the given date."""
     if not date_str:
         return None
     try:
@@ -458,30 +315,37 @@ def _days_until(date_str: str | None) -> int | None:
     return (d - date.today()).days
 
 
-def _next_absence(data: dict[str, Any], *, vacation_only: bool) -> dict[str, Any] | None:
-    """Return the first upcoming absence (optionally vacation-only)."""
-    upcoming = data.get("upcoming_absences") or []
+def _upcoming_only_in_future(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return absences that start today or later."""
     today = date.today()
-    for a in upcoming:
-        start = a.get("start_date")
+    out: list[dict[str, Any]] = []
+    for a in data.get("upcoming_absences") or []:
         try:
-            start_d = date.fromisoformat(start) if start else None
+            start = date.fromisoformat(a.get("start_date") or "")
         except ValueError:
-            start_d = None
-        # Only count absences that start today or in the future — skip ongoing
-        # ones that started in the past (they would pollute the "next" value).
-        if start_d is None or start_d < today:
             continue
-        if vacation_only:
-            atype = a.get("absence_type") or {}
-            if not atype.get("is_vacation"):
-                continue
-        return a
+        if start >= today:
+            out.append(a)
+    return out
+
+
+def _next_vacation(data: dict[str, Any]) -> dict[str, Any] | None:
+    """First upcoming absence where absence_type.is_vacation is true."""
+    for a in _upcoming_only_in_future(data):
+        atype = a.get("absence_type") or {}
+        if atype.get("is_vacation"):
+            return a
     return None
 
 
+def _next_absence(data: dict[str, Any]) -> dict[str, Any] | None:
+    """First upcoming absence regardless of type."""
+    entries = _upcoming_only_in_future(data)
+    return entries[0] if entries else None
+
+
 def _summarize_absence(absence: dict[str, Any]) -> dict[str, Any]:
-    """Build a compact dict with the attributes most templates will need."""
+    """Compact dict of the fields dashboards typically need."""
     atype = absence.get("absence_type") or {}
     return {
         "start_date": absence.get("start_date"),
