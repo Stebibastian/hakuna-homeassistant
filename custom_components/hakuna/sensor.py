@@ -265,14 +265,18 @@ class HakunaSensor(CoordinatorEntity[HakunaDataUpdateCoordinator], SensorEntity)
         if key == "target_month_hours":
             return data.get("target_month_hours")
         if key == "progress_week_percent":
+            # Against full-week target, not "to-date" target. Gives the
+            # intuitive "I'm 20 % of the way through this week" view —
+            # the progressive variant produced confusing readings like
+            # 103 % on a Monday evening after a normal 8.5 h day.
             return _percent(
                 data.get("worked_week_seconds"),
-                data.get("target_week_hours"),
+                data.get("target_week_full_hours"),
             )
         if key == "progress_month_percent":
             return _percent(
                 data.get("worked_month_seconds"),
-                data.get("target_month_hours"),
+                data.get("target_month_full_hours"),
             )
 
         return None
